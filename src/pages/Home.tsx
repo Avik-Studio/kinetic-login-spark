@@ -4,9 +4,12 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { LogOut, User } from 'lucide-react'
+import Navbar from '@/components/Navbar'
+import { UserProvider, useUser } from '@/contexts/UserContext'
 
-export default function Home() {
-  const { user } = useAuth()
+function HomeContent() {
+  const { user: authUser } = useAuth()
+  const { user: neoRideUser, updateUserRole } = useUser()
   const { toast } = useToast()
 
   const handleLogout = async () => {
@@ -35,17 +38,44 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+      {neoRideUser && (
+        <Navbar 
+          user={neoRideUser} 
+          onLogout={handleLogout} 
+          notificationCount={3}
+        />
+      )}
+      
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold animate-fade-in">Welcome Home</h1>
-          <Button 
-            onClick={handleLogout} 
-            variant="outline" 
-            className="hover-scale"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <h1 className="text-4xl font-bold animate-fade-in">
+            Welcome to NeoRide, {neoRideUser?.name}!
+          </h1>
+          
+          {/* Demo Role Switcher */}
+          <div className="flex gap-2">
+            <Button 
+              variant={neoRideUser?.role === 'customer' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => updateUserRole('customer')}
+            >
+              Customer
+            </Button>
+            <Button 
+              variant={neoRideUser?.role === 'driver' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => updateUserRole('driver')}
+            >
+              Driver
+            </Button>
+            <Button 
+              variant={neoRideUser?.role === 'admin' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => updateUserRole('admin')}
+            >
+              Admin
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -61,24 +91,30 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p><strong>Name:</strong> {user?.user_metadata?.full_name || 'Not provided'}</p>
-                <p><strong>Email:</strong> {user?.email}</p>
-                <p><strong>Verified:</strong> {user?.email_confirmed_at ? 'Yes' : 'No'}</p>
+                <p><strong>Name:</strong> {authUser?.user_metadata?.full_name || neoRideUser?.name || 'Not provided'}</p>
+                <p><strong>Email:</strong> {authUser?.email || neoRideUser?.email}</p>
+                <p><strong>Role:</strong> {neoRideUser?.role}</p>
+                <p><strong>Verified:</strong> {authUser?.email_confirmed_at ? 'Yes' : 'No'}</p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="animate-fade-in hover-scale" style={{ animationDelay: '0.1s' }}>
             <CardHeader>
-              <CardTitle>Dashboard</CardTitle>
+              <CardTitle>NeoRide Dashboard</CardTitle>
               <CardDescription>
-                Quick overview of your activities
+                Your {neoRideUser?.role} overview
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Welcome to your dashboard! This is where you can manage your account and access various features.
+                Welcome to NeoRide! Use the navigation bar above to explore features specific to your role as a {neoRideUser?.role}.
               </p>
+              <div className="mt-4 p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  💡 Try switching roles with the buttons above to see how the navbar changes!
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -100,5 +136,13 @@ export default function Home() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <UserProvider>
+      <HomeContent />
+    </UserProvider>
   )
 }
