@@ -11,6 +11,7 @@ export default function Signup() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [confirmEmail, setConfirmEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
@@ -24,6 +25,16 @@ export default function Signup() {
       toast({
         title: 'Error',
         description: 'Email addresses do not match',
+        variant: 'destructive',
+      })
+      setLoading(false)
+      return
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'Passwords do not match',
         variant: 'destructive',
       })
       setLoading(false)
@@ -120,6 +131,18 @@ export default function Signup() {
                 placeholder="Create a strong password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
+                className="transition-all duration-200 focus:scale-[1.02]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 className="transition-all duration-200 focus:scale-[1.02]"
               />
