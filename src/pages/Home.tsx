@@ -1,20 +1,43 @@
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
-import { LogOut, User } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import CustomerHome from './CustomerHome'
+import DriverHome from './DriverHome'
+import AdminHome from './AdminHome'
 import Navbar from '@/components/Navbar'
-import { UserProvider, useUser } from '@/contexts/UserContext'
+import { User } from '@/types/user'
 
-function HomeContent() {
+export default function Home() {
   const { user: authUser } = useAuth()
-  const { user: neoRideUser, updateUserRole } = useUser()
+  const [userRole, setUserRole] = useState<'customer' | 'driver' | 'admin'>('customer')
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+
+  const neoRideUser: User = {
+    id: authUser?.id || '1',
+    name: authUser?.user_metadata?.full_name || 'Demo User',
+    email: authUser?.email || localStorage.getItem('userEmail') || 'demo@example.com',
+    role: userRole,
+    avatar: authUser?.user_metadata?.avatar_url,
+    isOnline: userRole === 'driver' ? false : undefined,
+  }
+
+  useEffect(() => {
+    // Check for stored role (for demo purposes)
+    const storedRole = localStorage.getItem('userRole') as 'customer' | 'driver' | 'admin'
+    if (storedRole) {
+      setUserRole(storedRole)
+    }
+    setLoading(false)
+  }, [])
 
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut()
+      localStorage.removeItem('userRole')
+      localStorage.removeItem('userEmail')
+      
       if (error) {
         toast({
           title: 'Error',
@@ -36,113 +59,62 @@ function HomeContent() {
     }
   }
 
+  const updateUserRole = (role: 'customer' | 'driver' | 'admin') => {
+    setUserRole(role)
+    localStorage.setItem('userRole', role)
+    toast({
+      title: 'Role Updated',
+      description: `Switched to ${role} view`,
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-lg">Loading...</div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      {neoRideUser && (
-        <Navbar 
-          user={neoRideUser} 
-          onLogout={handleLogout} 
-          notificationCount={3}
-        />
-      )}
+    <div className="min-h-screen">
+      <Navbar 
+        user={neoRideUser} 
+        onLogout={handleLogout} 
+        notificationCount={3}
+      />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold animate-fade-in">
-            Welcome to NeoRide, {neoRideUser?.name}!
-          </h1>
-          
-          {/* Demo Role Switcher */}
+      {/* Demo Role Switcher - Remove in production */}
+      <div className="bg-gray-100 border-b px-4 py-2">
+        <div className="container mx-auto flex items-center justify-between">
+          <span className="text-sm text-gray-600">Demo Mode - Switch Roles:</span>
           <div className="flex gap-2">
-            <Button 
-              variant={neoRideUser?.role === 'customer' ? 'default' : 'outline'}
-              size="sm"
+            <button 
               onClick={() => updateUserRole('customer')}
+              className={`px-3 py-1 text-xs rounded ${userRole === 'customer' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600'}`}
             >
               Customer
-            </Button>
-            <Button 
-              variant={neoRideUser?.role === 'driver' ? 'default' : 'outline'}
-              size="sm"
+            </button>
+            <button 
               onClick={() => updateUserRole('driver')}
+              className={`px-3 py-1 text-xs rounded ${userRole === 'driver' ? 'bg-green-500 text-white' : 'bg-white text-gray-600'}`}
             >
               Driver
-            </Button>
-            <Button 
-              variant={neoRideUser?.role === 'admin' ? 'default' : 'outline'}
-              size="sm"
+            </button>
+            <button 
               onClick={() => updateUserRole('admin')}
+              className={`px-3 py-1 text-xs rounded ${userRole === 'admin' ? 'bg-purple-500 text-white' : 'bg-white text-gray-600'}`}
             >
               Admin
-            </Button>
+            </button>
           </div>
         </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="animate-fade-in hover-scale">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profile
-              </CardTitle>
-              <CardDescription>
-                Your account information
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p><strong>Name:</strong> {authUser?.user_metadata?.full_name || neoRideUser?.name || 'Not provided'}</p>
-                <p><strong>Email:</strong> {authUser?.email || neoRideUser?.email}</p>
-                <p><strong>Role:</strong> {neoRideUser?.role}</p>
-                <p><strong>Verified:</strong> {authUser?.email_confirmed_at ? 'Yes' : 'No'}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="animate-fade-in hover-scale" style={{ animationDelay: '0.1s' }}>
-            <CardHeader>
-              <CardTitle>NeoRide Dashboard</CardTitle>
-              <CardDescription>
-                Your {neoRideUser?.role} overview
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Welcome to NeoRide! Use the navigation bar above to explore features specific to your role as a {neoRideUser?.role}.
-              </p>
-              <div className="mt-4 p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  💡 Try switching roles with the buttons above to see how the navbar changes!
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="animate-fade-in hover-scale" style={{ animationDelay: '0.2s' }}>
-            <CardHeader>
-              <CardTitle>Getting Started</CardTitle>
-              <CardDescription>
-                Tips to help you get the most out of your account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                <li>Complete your profile</li>
-                <li>Explore available features</li>
-                <li>Customize your preferences</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
       </div>
-    </div>
-  )
-}
 
-export default function Home() {
-  return (
-    <UserProvider>
-      <HomeContent />
-    </UserProvider>
+      {/* Render appropriate home page based on role */}
+      {userRole === 'customer' && <CustomerHome />}
+      {userRole === 'driver' && <DriverHome />}
+      {userRole === 'admin' && <AdminHome />}
+    </div>
   )
 }
